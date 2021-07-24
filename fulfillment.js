@@ -85,8 +85,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                 col.push({
                     actions: [
                         {
-                            label: "choose",
-                            text: doc.data().sku,
+                            label: "add to cart",
+                            text: "add "+doc.data().sku,
                             type: "message"
                         }
                     ],
@@ -113,7 +113,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
             agent.add(payload);
         });
-        //agent.add(`getShirtHandler`);
     }
 
     let intentMap = new Map();
