@@ -11,6 +11,7 @@ process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
     const agent = new WebhookClient({ request, response });
     let x = JSON.stringify(request.body);
+    let userId = request.body.originalDetectIntentRequest.payload.data.source.userId;
     function getNameHandler(agent) {
         let name = request.body.queryResult.parameters.name || agent.context.get('awaiting_name').parameters.name;
 
@@ -20,11 +21,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function addCartHandler(agent) {
-        //let name = request.body.queryResult.parameters.name || agent.context.get('awaiting_name').parameters.name;
         db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 });
-        //db.collection("product").add({ name: "test get name" });
         agent.add(`add cart (from Linline Editor)`);
-        agent.add(x);
+        agent.add(userId);
     }
 
     function getShirtHandler(agent) {
