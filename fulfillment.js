@@ -21,9 +21,22 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function addCartHandler(agent) {
-        db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 });
-        agent.add(`add cart (from Linline Editor)`);
-        agent.add(userId);
+        // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId});
+        // agent.add(`add cart (from Linline Editor)`);
+        // agent.add(userId);
+        //////////////////////////////
+        return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+            // agent.add(doc.data().userId);
+            // agent.add(userId);
+            if (doc.empty) {
+                agent.add('doc is empty');
+            } else {
+                doc.forEach(doc => {
+                    agent.add(JSON.stringify(doc));
+                });
+            }
+
+        });
     }
 
     function getShirtHandler(agent) {
@@ -86,7 +99,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     actions: [
                         {
                             label: "add to cart",
-                            text: "add "+doc.data().sku,
+                            text: "add " + doc.data().sku,
                             type: "message"
                         }
                     ],
@@ -109,7 +122,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     type: "carousel"
                 }
             };
-    
+
             let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
             agent.add(payload);
         });
