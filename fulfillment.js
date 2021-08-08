@@ -12,15 +12,20 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     const agent = new WebhookClient({ request, response });
     let x = JSON.stringify(request.body);
     let userId = request.body.originalDetectIntentRequest.payload.data.source.userId;
+
     function getNameHandler(agent) {
         let name = request.body.queryResult.parameters.name || agent.context.get('awaiting_name').parameters.name;
-
+		
         db.collection("names").add({ name: name });
         //db.collection("product").add({ name: "test get name" });
+      	agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`Thank you, ${name} (from Linline Editor)`);
     }
 
     function addCartHandler(agent) {
+        let sku = request.body.queryResult.parameters.sku;
+      	agent.add(JSON.stringify(request.body.queryResult.parameters));
+        agent.add(`Thank you, ${sku} (from inline Editor)`);
         // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId});
         // agent.add(`add cart (from Linline Editor)`);
         // agent.add(userId);
@@ -106,7 +111,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     thumbnailImageUrl: doc.data().picture,
                     text: "...",
                     title: doc.data().title
-                })
+                });
                 agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
             });
 
