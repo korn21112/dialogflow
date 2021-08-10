@@ -15,30 +15,66 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     function getNameHandler(agent) {
         let name = request.body.queryResult.parameters.name || agent.context.get('awaiting_name').parameters.name;
-		
+
         db.collection("names").add({ name: name });
         //db.collection("product").add({ name: "test get name" });
-      	agent.add(JSON.stringify(request.body.queryResult.parameters));
+        agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`Thank you, ${name} (from Linline Editor)`);
     }
 
     function addCartHandler(agent) {
+        console.log('add cart handler');
         let sku = request.body.queryResult.parameters.sku;
-      	agent.add(JSON.stringify(request.body.queryResult.parameters));
+        let isCart = 'false';
+        agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`Thank you, ${sku} (from inline Editor)`);
         // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId});
         // agent.add(`add cart (from Linline Editor)`);
         // agent.add(userId);
+        admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+            console.log('firestore cart get');
+            if (doc.empty) {
+                agent.add('this userId dont have in carts');
+            } else {
+                doc.forEach(doc => {
+                    console.log('print docs of carts');
+                    agent.add('docs of carts');
+                    agent.add(JSON.stringify(doc));
+                    isCart = 'true';
+                });
+            }
+        });
         //////////////////////////////
-        return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+        return admin.firestore().collection('products').where('sku', '==', sku).get().then(doc => {
+            console.log('products get from sku');
+            agent.add('products get from sku');
             // agent.add(doc.data().userId);
             // agent.add(userId);
             if (doc.empty) {
-                agent.add('doc is empty');
+                agent.add('sku error');
+                agent.add(isCart);
             } else {
                 doc.forEach(doc => {
-                    agent.add(JSON.stringify(doc));
+                    // agent.add(JSON.stringify(doc));
+                    let products = [];
+                    let product = {
+                        sku: doc.data().sku,
+                        quantity: 1,
+                        title: doc.data().title,
+                        price: doc.data().price
+
+                    };
+
+                    // products.push(product)
+                    // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId, products:products});
                 });
+                agent.add(isCart);
+                if (isCart == 'false') {//if dont have cart of this userId
+                    db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2, userId: userId });
+                    agent.add('isCarts is false');
+                } else {
+                    agent.add('isCarts is true');
+                }
             }
 
         });
