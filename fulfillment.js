@@ -3,6 +3,7 @@
 const functions = require('firebase-functions');
 const { WebhookClient, Payload } = require('dialogflow-fulfillment');
 const admin = require('firebase-admin');
+const { UpdatePermission } = require('actions-on-google');
 admin.initializeApp();
 const db = admin.firestore();
 
@@ -26,24 +27,25 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         console.log('add cart handler');
         let sku = request.body.queryResult.parameters.sku;
         let isCart = 'false';
+        let products = [];
         agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`Thank you, ${sku} (from inline Editor)`);
         // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId});
         // agent.add(`add cart (from Linline Editor)`);
         // agent.add(userId);
-        admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
-            console.log('firestore cart get');
-            if (doc.empty) {
-                agent.add('this userId dont have in carts');
-            } else {
-                doc.forEach(doc => {
-                    console.log('print docs of carts');
-                    agent.add('docs of carts');
-                    agent.add(JSON.stringify(doc));
-                    isCart = 'true';
-                });
-            }
-        });
+        // admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+        //     console.log('firestore cart get');
+        //     if (doc.empty) {
+        //         agent.add('this userId dont have in carts');
+        //     } else {
+        //         doc.forEach(doc => {
+        //             console.log('print docs of carts');
+        //             agent.add('docs of carts');
+        //             agent.add(JSON.stringify(doc));
+        //             isCart = 'true';
+        //         });
+        //     }
+        // });
         //////////////////////////////
         return admin.firestore().collection('products').where('sku', '==', sku).get().then(doc => {
             console.log('products get from sku');
@@ -55,8 +57,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                 agent.add(isCart);
             } else {
                 doc.forEach(doc => {
-                    // agent.add(JSON.stringify(doc));
-                    let products = [];
+                    agent.add('sku checked');
+                  	//agent.add(JSON.stringify(doc.ref._path.segments[1]));
+                    agent.add(JSON.stringify(doc.data()));
                     let product = {
                         sku: doc.data().sku,
                         quantity: 1,
@@ -65,16 +68,45 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
                     };
 
-                    // products.push(product)
-                    // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId, products:products});
+                    products.push(product);
                 });
-                agent.add(isCart);
-                if (isCart == 'false') {//if dont have cart of this userId
-                    db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2, userId: userId });
-                    agent.add('isCarts is false');
-                } else {
-                    agent.add('isCarts is true');
-                }
+                admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+                    console.log('firestore cart get');
+                    if (doc.empty) {
+                      	console.log('this userId dont have in carts');
+                        agent.add('this userId dont have in carts');
+                      	db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId, products:products});
+                      	console.log('adding cart');
+                    } else {
+                      	console.log('this userId is in carts already');
+                        doc.forEach(doc => {
+                            console.log('print docs of carts:'+doc.data().userId);
+                            console.log('doc number of carts:'+doc.ref._path.segments[1]);
+                            admin.firestore()
+                                .collection('carts')
+                                .doc(doc.ref._path.segments[1])
+                                .update({
+                                    userId:doc.data().userId,
+                                    totalPrice:doc.data().totalPrice,
+                                    totalQuantity:doc.data().totalQuantity+1,
+                                    products:doc.data().products
+                                })
+                                .then(() => {
+                                    console.log('cart updated');
+                                });
+                            // agent.add('docs of carts');
+                            // agent.add(JSON.stringify(doc));
+                            // isCart = 'true';
+                        });
+                    }
+                });
+                // agent.add(isCart);
+                // if (isCart == 'false') {//if dont have cart of this userId
+                //     db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId, products:products});
+                //     agent.add('isCarts is false -> add cart to firestore');
+                // } else {
+                //     agent.add('isCarts is true');
+                // }
             }
 
         });
