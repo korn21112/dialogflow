@@ -28,6 +28,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let sku = request.body.queryResult.parameters.sku;
         let isCart = 'false';
         let products = [];
+        let product = {};
         agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`Thank you, ${sku} (from inline Editor)`);
         // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId});
@@ -60,7 +61,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     agent.add('sku checked');
                   	//agent.add(JSON.stringify(doc.ref._path.segments[1]));
                     agent.add(JSON.stringify(doc.data()));
-                    let product = {
+                    product = {
                         sku: doc.data().sku,
                         quantity: 1,
                         title: doc.data().title,
@@ -68,18 +69,30 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
                     };
 
-                    products.push(product);
+                    // products.push(product);
                 });
                 admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
                     console.log('firestore cart get');
                     if (doc.empty) {
+                        products.push(product);
                       	console.log('this userId dont have in carts');
                         agent.add('this userId dont have in carts');
                       	db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId, products:products});
                       	console.log('adding cart');
                     } else {
                       	console.log('this userId is in carts already');
+                        // products=doc.data().products;
+                        //products.push(product);
+                      	//products.push(product);
                         doc.forEach(doc => {
+                          	products=doc.data().products;
+                            if(products.find(item=>item.sku == sku)){
+                                products[products.findIndex(item=>item.sku == sku)].quantity++;
+                            }
+                            else {
+                                products.push(product);
+                            }
+                            //
                             console.log('print docs of carts:'+doc.data().userId);
                             console.log('doc number of carts:'+doc.ref._path.segments[1]);
                             admin.firestore()
@@ -89,7 +102,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                     userId:doc.data().userId,
                                     totalPrice:doc.data().totalPrice,
                                     totalQuantity:doc.data().totalQuantity+1,
-                                    products:doc.data().products
+                                    products:products//doc.data().products
                                 })
                                 .then(() => {
                                     console.log('cart updated');
