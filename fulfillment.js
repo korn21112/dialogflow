@@ -77,7 +77,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                         products.push(product);
                       	console.log('this userId dont have in carts');
                         agent.add('this userId dont have in carts');
-                      	db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId, products:products});
+                      	db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1 ,userId :userId, products:products});
                       	console.log('adding cart');
                     } else {
                       	console.log('this userId is in carts already');
@@ -100,7 +100,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                 .doc(doc.ref._path.segments[1])
                                 .update({
                                     userId:doc.data().userId,
-                                    totalPrice:doc.data().totalPrice,
+                                    totalPrice:doc.data().totalPrice+product.price,
                                     totalQuantity:doc.data().totalQuantity+1,
                                     products:products//doc.data().products
                                 })
@@ -185,7 +185,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     actions: [
                         {
                             label: "add to cart",
-                            text: "add " + doc.data().sku,
+                            text: "addcart " + doc.data().sku,
                             type: "message"
                         }
                     ],
