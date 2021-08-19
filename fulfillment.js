@@ -59,7 +59,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             } else {
                 doc.forEach(doc => {
                     agent.add('sku checked');
-                  	//agent.add(JSON.stringify(doc.ref._path.segments[1]));
+                    //agent.add(JSON.stringify(doc.ref._path.segments[1]));
                     agent.add(JSON.stringify(doc.data()));
                     product = {
                         sku: doc.data().sku,
@@ -75,34 +75,34 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     console.log('firestore cart get');
                     if (doc.empty) {
                         products.push(product);
-                      	console.log('this userId dont have in carts');
+                        console.log('this userId dont have in carts');
                         agent.add('this userId dont have in carts');
-                      	db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1 ,userId :userId, products:products});
-                      	console.log('adding cart');
+                        db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1, userId: userId, products: products });
+                        console.log('adding cart');
                     } else {
-                      	console.log('this userId is in carts already');
+                        console.log('this userId is in carts already');
                         // products=doc.data().products;
                         //products.push(product);
-                      	//products.push(product);
+                        //products.push(product);
                         doc.forEach(doc => {
-                          	products=doc.data().products;
-                            if(products.find(item=>item.sku == sku)){
-                                products[products.findIndex(item=>item.sku == sku)].quantity++;
+                            products = doc.data().products;
+                            if (products.find(item => item.sku == sku)) {
+                                products[products.findIndex(item => item.sku == sku)].quantity++;
                             }
                             else {
                                 products.push(product);
                             }
                             //
-                            console.log('print docs of carts:'+doc.data().userId);
-                            console.log('doc number of carts:'+doc.ref._path.segments[1]);
+                            console.log('print docs of carts:' + doc.data().userId);
+                            console.log('doc number of carts:' + doc.ref._path.segments[1]);
                             admin.firestore()
                                 .collection('carts')
                                 .doc(doc.ref._path.segments[1])
                                 .update({
-                                    userId:doc.data().userId,
-                                    totalPrice:doc.data().totalPrice+product.price,
-                                    totalQuantity:doc.data().totalQuantity+1,
-                                    products:products//doc.data().products
+                                    userId: doc.data().userId,
+                                    totalPrice: doc.data().totalPrice + product.price,
+                                    totalQuantity: doc.data().totalQuantity + 1,
+                                    products: products//doc.data().products
                                 })
                                 .then(() => {
                                     console.log('cart updated');
@@ -214,10 +214,56 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         });
     }
 
+    function myCartHandler(agent) {
+
+        db.collection("product").add({ name: "test read fullfill get shirt" });
+        //return admin.firestore().collection('products').doc('BrJqtQVHd5ywewhNUIda').get().then(doc => {
+        return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+            //agent.add(payload);
+            let col = [];
+            doc.forEach(doc => {
+                agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
+                doc.data().products.forEach(doc => {
+                    // col.push({
+                    //     // actions: [
+                    //     //     {
+                    //     //         label: "add to cart",
+                    //     //         text: "addcart " + doc.data().sku,
+                    //     //         type: "message"
+                    //     //     }
+                    //     // ],
+                    //     thumbnailImageUrl: doc.data().picture,
+                    //     text: "...",
+                    //     title: doc.data().title
+                    // });
+                    agent.add('title:' + doc.title + '\nsku:' + doc.sku + '\nquantity:' + doc.quantity);
+                });
+            })
+
+
+            //agent.add('type:'+doc.data().type+'\nname:'+doc.data().title+'\nsku:'+doc.data().sku);
+            //});
+            return col;
+        }).then(col => {
+            // const payloadJson = {
+            //     altText: "this is a carousel template",
+            //     type: "template",
+            //     template: {
+            //         columns: col,
+            //         type: "carousel"
+            //     }
+            // };
+
+            // let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
+            // agent.add(payload);
+        });
+    }
+
     let intentMap = new Map();
     intentMap.set('Get Name', getNameHandler);
     intentMap.set('Get Shirt', getShirtHandler);
     intentMap.set('Add CartTest', addCartHandler);
+    intentMap.set('My Cart', myCartHandler);
     //intentMap.set('Confirm Name Yes', getNameHandler);
     agent.handleRequest(intentMap);
 });
