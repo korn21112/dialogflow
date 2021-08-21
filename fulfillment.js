@@ -126,7 +126,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function getShirtHandler(agent) {
-
+        let type = request.body.queryResult.parameters.type;
+        agent.add(`Thank you, ${type} (from inline Editor test4)`);
         const payloadJson = {
             altText: "this is a carousel template",
             type: "template",
@@ -177,40 +178,38 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
         db.collection("product").add({ name: "test read fullfill get shirt" });
         //return admin.firestore().collection('products').doc('BrJqtQVHd5ywewhNUIda').get().then(doc => {
-        return admin.firestore().collection('products').where('type', '==', 'shirt').get().then(doc => {
+        return admin.firestore().collection('products').where('type', '==', type).get().then(doc => {
             //agent.add(payload);
             let col = [];
-            doc.forEach(doc => {
-                col.push({
-                    actions: [
-                        {
-                            label: "add to cart",
-                            text: "addcart " + doc.data().sku,
-                            type: "message"
-                        }
-                    ],
-                    thumbnailImageUrl: doc.data().picture,
-                    text: "...",
-                    title: doc.data().title
+            if (doc.empty) {
+                agent.add('dont have this type');
+            } else {
+                doc.forEach(doc => {
+                    col.push({
+                        actions: [
+                            {
+                                label: "add to cart",
+                                text: "addcart " + doc.data().sku,
+                                type: "message"
+                            }
+                        ],
+                        thumbnailImageUrl: doc.data().picture,
+                        text: "...",
+                        title: doc.data().title
+                    });
+                    agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
                 });
-                agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
-            });
-
-            //agent.add('type:'+doc.data().type+'\nname:'+doc.data().title+'\nsku:'+doc.data().sku);
-            //});
-            return col;
-        }).then(col => {
-            const payloadJson = {
-                altText: "this is a carousel template",
-                type: "template",
-                template: {
-                    columns: col,
-                    type: "carousel"
-                }
-            };
-
-            let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
-            agent.add(payload);
+                const payloadJson = {
+                    altText: "this is a carousel template",
+                    type: "template",
+                    template: {
+                        columns: col,
+                        type: "carousel"
+                    }
+                };
+                let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
+                agent.add(payload);
+            }
         });
     }
 
