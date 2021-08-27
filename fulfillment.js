@@ -216,7 +216,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     function myCartHandler(agent) {
 
         db.collection("product").add({ name: "test read fullfill get shirt" });
-        //return admin.firestore().collection('products').doc('BrJqtQVHd5ywewhNUIda').get().then(doc => {
         return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
             //agent.add(payload);
             let col = [];
@@ -242,8 +241,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
             //agent.add('type:'+doc.data().type+'\nname:'+doc.data().title+'\nsku:'+doc.data().sku);
             //});
-            return col;
-        }).then(col => {
             // const payloadJson = {
             //     altText: "this is a carousel template",
             //     type: "template",
@@ -255,6 +252,21 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
             // let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
             // agent.add(payload);
+        })
+    }
+
+    function cancelCartHandler(agent) {
+        return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+            if (doc.empty) {
+                agent.add('u dont have cart');
+            } else {
+                doc.forEach(doc => {
+                    agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
+                    admin.firestore().collection('carts').doc(doc.ref._path.segments[1]).delete().then(() => {
+                        agent.add('cancel cart complete');
+                    })
+                })
+            }
         });
     }
 
@@ -263,6 +275,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     intentMap.set('Get Shirt', getShirtHandler);
     intentMap.set('Add CartTest', addCartHandler);
     intentMap.set('My Cart', myCartHandler);
+    intentMap.set('Cancel Cart', cancelCartHandler);
     //intentMap.set('Confirm Name Yes', getNameHandler);
     agent.handleRequest(intentMap);
 });
