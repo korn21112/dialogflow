@@ -65,8 +65,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                         sku: doc.data().sku,
                         quantity: 1,
                         title: doc.data().title,
-                        price: doc.data().price
-
+                        price: doc.data().price,
+                        picture: doc.data().picture
                     };
 
                     // products.push(product);
@@ -237,10 +237,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     agent.add('title:' + doc.title + '\nsku:' + doc.sku + '\nquantity:' + doc.quantity);
                 });
             })
-
-
-            //agent.add('type:'+doc.data().type+'\nname:'+doc.data().title+'\nsku:'+doc.data().sku);
-            //});
+            
             // const payloadJson = {
             //     altText: "this is a carousel template",
             //     type: "template",
