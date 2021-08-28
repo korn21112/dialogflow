@@ -217,39 +217,44 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
         db.collection("product").add({ name: "test read fullfill get shirt" });
         return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
-            //agent.add(payload);
-            let col = [];
+            let contents = [];
             doc.forEach(doc => {
                 agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
                 doc.data().products.forEach(doc => {
-                    // col.push({
-                    //     // actions: [
-                    //     //     {
-                    //     //         label: "add to cart",
-                    //     //         text: "addcart " + doc.data().sku,
-                    //     //         type: "message"
-                    //     //     }
-                    //     // ],
-                    //     thumbnailImageUrl: doc.data().picture,
-                    //     text: "...",
-                    //     title: doc.data().title
-                    // });
-                    agent.add('title:' + doc.title + '\nsku:' + doc.sku + '\nquantity:' + doc.quantity);
+                    contents.push({
+                        hero:{
+                           size:"full",
+                           type:"image",
+                           url:doc.picture
+                        },
+                        body:{
+                           type:"box",
+                           layout:"horizontal",
+                           contents:[
+                              {
+                                 type:"text",
+                                 text:doc.title,
+                                 wrap:true
+                              }
+                           ]
+                        },
+                        type:"bubble"
+                    });
                 });
-            })
+            });
             
-            // const payloadJson = {
-            //     altText: "this is a carousel template",
-            //     type: "template",
-            //     template: {
-            //         columns: col,
-            //         type: "carousel"
-            //     }
-            // };
-
-            // let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
-            // agent.add(payload);
-        })
+            const payloadJson = {
+                altText: "this is a flex message",
+                type: "flex",
+                contents: 
+                {
+                    type:"carousel",
+                    contents:contents
+                }
+            };
+            let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
+            agent.add(payload);
+        });
     }
 
     function cancelCartHandler(agent) {
@@ -261,8 +266,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
                     admin.firestore().collection('carts').doc(doc.ref._path.segments[1]).delete().then(() => {
                         agent.add('cancel cart complete');
-                    })
-                })
+                    });
+                });
             }
         });
     }
