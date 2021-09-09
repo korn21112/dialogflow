@@ -217,43 +217,46 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
         db.collection("product").add({ name: "test read fullfill get shirt" });
         return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
-            let contents = [];
-            doc.forEach(doc => {
-                agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
-                doc.data().products.forEach(doc => {
-                    contents.push({
-                        hero:{
-                           size:"full",
-                           type:"image",
-                           url:doc.picture
-                        },
-                        body:{
-                           type:"box",
-                           layout:"horizontal",
-                           contents:[
-                              {
-                                 type:"text",
-                                 text:doc.title,
-                                 wrap:true
-                              }
-                           ]
-                        },
-                        type:"bubble"
+            if (doc.empty) {
+                agent.add('u dont have cart');
+            } else {
+                let contents = [];
+                doc.forEach(doc => {
+                    agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
+                    doc.data().products.forEach(doc => {
+                        contents.push({
+                            hero: {
+                                size: "full",
+                                type: "image",
+                                url: doc.picture
+                            },
+                            body: {
+                                type: "box",
+                                layout: "horizontal",
+                                contents: [
+                                    {
+                                        type: "text",
+                                        text: doc.title,
+                                        wrap: true
+                                    }
+                                ]
+                            },
+                            type: "bubble"
+                        });
                     });
                 });
-            });
-            
-            const payloadJson = {
-                altText: "this is a flex message",
-                type: "flex",
-                contents: 
-                {
-                    type:"carousel",
-                    contents:contents
-                }
-            };
-            let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
-            agent.add(payload);
+                const payloadJson = {
+                    altText: "this is a flex message",
+                    type: "flex",
+                    contents:
+                    {
+                        type: "carousel",
+                        contents: contents
+                    }
+                };
+                let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
+                agent.add(payload);
+            }
         });
     }
 
