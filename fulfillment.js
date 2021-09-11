@@ -275,12 +275,127 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         });
     }
 
+    function removeItemHandler(agent) {
+        console.log('remove item handler');
+        let sku = request.body.queryResult.parameters.sku;
+        let isCart = 'false';
+        let products = [];
+        let product = {};
+        let totalQuantityReduce = 0;
+        let totalPriceReduce = 0;
+        agent.add(JSON.stringify(request.body.queryResult.parameters));
+        agent.add(`remove item test  ${sku} (from inline Editor)`);
+
+        return admin.firestore().collection('products').where('sku', '==', sku).get().then(doc => {
+            console.log('check products from sku');
+            agent.add('check products from sku');
+            // agent.add(doc.data().userId);
+            // agent.add(userId);
+            if (doc.empty) {
+                agent.add('sku error');
+                agent.add(isCart);
+            } else {
+                doc.forEach(doc => {
+                    agent.add('sku checked');
+                    //agent.add(JSON.stringify(doc.ref._path.segments[1]));
+                    agent.add(JSON.stringify(doc.data()));
+                    product = {
+                        sku: doc.data().sku,
+                        quantity: 1,
+                        title: doc.data().title,
+                        price: doc.data().price,
+                        picture: doc.data().picture
+                    };
+
+                    // products.push(product);
+                });
+
+                agent.add('sku checked');
+                admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+                    console.log('firestore cart get');
+                    if (doc.empty) {
+                        products.push(product);
+                        console.log('this userId dont have in carts');
+                        agent.add('this userId dont have in carts');
+                        // db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1, userId: userId, products: products });
+                        // console.log('adding cart');
+                    } else {
+                        console.log('this userId is in carts already');
+                        // products=doc.data().products;
+                        //products.push(product);
+                        //products.push(product);
+                        doc.forEach(doc => {
+                            products = doc.data().products; //get product from cart
+                            if (products.find(item => item.sku == sku)) {
+                                //have sku in cart -> remove item
+                                // products[products.findIndex(item => item.sku == sku)].quantity++;
+                                if(products[products.findIndex(item => item.sku == sku)].quantity>1) {
+                                    products[products.findIndex(item => item.sku == sku)].quantity--;
+                                    agent.add('decrease quantity');
+                                    //decrease quantity
+                                }
+                                else {
+                                    //remove sku in cart == 1
+                                    products=products.filter((item)=>item.sku!=sku)
+                                }
+                                // totalQuantityReduce = 1;
+                                // totalPriceReduce = product.price;
+                                if(products.length>=1){
+                                    admin.firestore()
+                                        .collection('carts')
+                                        .doc(doc.ref._path.segments[1])
+                                        .update({
+                                            userId: doc.data().userId,
+                                            totalPrice: doc.data().totalPrice - product.price,
+                                            totalQuantity: doc.data().totalQuantity - 1,
+                                            products: products//doc.data().products
+                                        })
+                                        .then(() => {
+                                            console.log('cart updated');
+                                        });
+                                } else {
+                                    admin.firestore().collection('carts').doc(doc.ref._path.segments[1]).delete().then(() => {
+                                        agent.add('remove item complete');
+                                    });
+                                }
+                                
+                            }
+                            else {
+                                //dont have sku in cart -> do not thing
+                                // products.push(product);
+                                console.log('dont have this sku in cart');
+                                agent.add('dont have this sku in cart');
+                                // totalQuantityReduce=0;
+                                // totalPriceReduce=0;
+                            }
+                            //
+                            
+                            // admin.firestore()
+                            //     .collection('carts')
+                            //     .doc(doc.ref._path.segments[1])
+                            //     .update({
+                            //         userId: doc.data().userId,
+                            //         totalPrice: doc.data().totalPrice - totalPriceReduce,
+                            //         totalQuantity: doc.data().totalQuantity - totalQuantityReduce,
+                            //         products: products//doc.data().products
+                            //     })
+                            //     .then(() => {
+                            //         console.log('cart updated');
+                            //     });
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     let intentMap = new Map();
     intentMap.set('Get Name', getNameHandler);
     intentMap.set('Get Shirt', getShirtHandler);
     intentMap.set('Add CartTest', addCartHandler);
     intentMap.set('My Cart', myCartHandler);
     intentMap.set('Cancel Cart', cancelCartHandler);
+    intentMap.set('Remove Item', removeItemHandler);
     //intentMap.set('Confirm Name Yes', getNameHandler);
     agent.handleRequest(intentMap);
 });
