@@ -232,12 +232,32 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                             },
                             body: {
                                 type: "box",
-                                layout: "horizontal",
+                                layout: "vertical",
                                 contents: [
                                     {
                                         type: "text",
                                         text: doc.title,
                                         wrap: true
+                                    },
+                                    {
+                                        type: "text",
+                                        text: "quantity : "+doc.quantity.toString(),
+                                        wrap: true
+                                    }
+                                ]
+                            },
+                            footer: {
+                                type: "box",
+                                layout: "horizontal",
+                                contents: [
+                                    {
+                                        type: "button",
+                                        style: "primary",
+                                        action: {
+                                            type: "message",
+                                            label: "remove item 1",
+                                            text: "removeitem "+doc.sku
+                                        }
                                     }
                                 ]
                             },
@@ -329,18 +349,18 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                             if (products.find(item => item.sku == sku)) {
                                 //have sku in cart -> remove item
                                 // products[products.findIndex(item => item.sku == sku)].quantity++;
-                                if(products[products.findIndex(item => item.sku == sku)].quantity>1) {
+                                if (products[products.findIndex(item => item.sku == sku)].quantity > 1) {
                                     products[products.findIndex(item => item.sku == sku)].quantity--;
                                     agent.add('decrease quantity');
                                     //decrease quantity
                                 }
                                 else {
                                     //remove sku in cart == 1
-                                    products=products.filter((item)=>item.sku!=sku)
+                                    products = products.filter((item) => item.sku != sku)
                                 }
                                 // totalQuantityReduce = 1;
                                 // totalPriceReduce = product.price;
-                                if(products.length>=1){
+                                if (products.length >= 1) {
                                     admin.firestore()
                                         .collection('carts')
                                         .doc(doc.ref._path.segments[1])
@@ -358,7 +378,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                         agent.add('remove item complete');
                                     });
                                 }
-                                
+
                             }
                             else {
                                 //dont have sku in cart -> do not thing
@@ -369,7 +389,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                 // totalPriceReduce=0;
                             }
                             //
-                            
+
                             // admin.firestore()
                             //     .collection('carts')
                             //     .doc(doc.ref._path.segments[1])
