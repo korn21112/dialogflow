@@ -184,27 +184,75 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             if (doc.empty) {
                 agent.add('dont have this type');
             } else {
+                // doc.forEach(doc => {
+                //     col.push({
+                //         actions: [
+                //             {
+                //                 label: "add to cart",
+                //                 text: "addcart " + doc.data().sku,
+                //                 type: "message"
+                //             }
+                //         ],
+                //         thumbnailImageUrl: doc.data().picture,
+                //         text: "...",
+                //         title: doc.data().title
+                //     });
+                //     agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
+                // });
+                // const payloadJson = {
+                //     altText: "this is a carousel template",
+                //     type: "template",
+                //     template: {
+                //         columns: col,
+                //         type: "carousel"
+                //     }
+                // };
+
+                let contents = [];
                 doc.forEach(doc => {
-                    col.push({
-                        actions: [
-                            {
-                                label: "add to cart",
-                                text: "addcart " + doc.data().sku,
-                                type: "message"
-                            }
-                        ],
-                        thumbnailImageUrl: doc.data().picture,
-                        text: "...",
-                        title: doc.data().title
-                    });
+                        contents.push({
+                            hero: {
+                                size: "full",
+                                type: "image",
+                                url: doc.data().picture
+                            },
+                            body: {
+                                type: "box",
+                                layout: "vertical",
+                                contents: [
+                                    {
+                                        type: "text",
+                                        text: doc.data().title,
+                                        wrap: true
+                                    }
+                                ]
+                            },
+                            footer: {
+                                type: "box",
+                                layout: "horizontal",
+                                contents: [
+                                    {
+                                        type: "button",
+                                        style: "primary",
+                                        action: {
+                                            type: "message",
+                                            label: "add to cart",
+                                            text: "addcart " + doc.data().sku
+                                        }
+                                    }
+                                ]
+                            },
+                            type: "bubble"
+                        });
                     agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
                 });
                 const payloadJson = {
-                    altText: "this is a carousel template",
-                    type: "template",
-                    template: {
-                        columns: col,
-                        type: "carousel"
+                    altText: "this is a flex message",
+                    type: "flex",
+                    contents:
+                    {
+                        type: "carousel",
+                        contents: contents
                     }
                 };
                 let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
