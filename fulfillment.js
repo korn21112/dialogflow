@@ -29,6 +29,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let isCart = 'false';
         let products = [];
         let product = {};
+        let quantity = 0;
         agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`Thank you, ${sku} (from inline Editor)`);
         // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId});
@@ -61,6 +62,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     agent.add('sku checked');
                     //agent.add(JSON.stringify(doc.ref._path.segments[1]));
                     agent.add(JSON.stringify(doc.data()));
+                    quantity = doc.data().quantity
+                    if(quantity<=0){
+                        agent.add('quantity = 0 cant not add cart');
+                    }
                     product = {
                         sku: doc.data().sku,
                         quantity: 1,
@@ -73,45 +78,51 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                 });
                 admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
                     console.log('firestore cart get');
-                    if (doc.empty) {
-                        products.push(product);
-                        console.log('this userId dont have in carts');
-                        agent.add('this userId dont have in carts');
-                        db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1, userId: userId, products: products });
-                        console.log('adding cart');
-                    } else {
-                        console.log('this userId is in carts already');
-                        // products=doc.data().products;
-                        //products.push(product);
-                        //products.push(product);
-                        doc.forEach(doc => {
-                            products = doc.data().products;
-                            if (products.find(item => item.sku == sku)) {
-                                products[products.findIndex(item => item.sku == sku)].quantity++;
-                            }
-                            else {
-                                products.push(product);
-                            }
-                            //
-                            console.log('print docs of carts:' + doc.data().userId);
-                            console.log('doc number of carts:' + doc.ref._path.segments[1]);
-                            admin.firestore()
-                                .collection('carts')
-                                .doc(doc.ref._path.segments[1])
-                                .update({
-                                    userId: doc.data().userId,
-                                    totalPrice: doc.data().totalPrice + product.price,
-                                    totalQuantity: doc.data().totalQuantity + 1,
-                                    products: products//doc.data().products
-                                })
-                                .then(() => {
-                                    console.log('cart updated');
-                                });
-                            // agent.add('docs of carts');
-                            // agent.add(JSON.stringify(doc));
-                            // isCart = 'true';
-                        });
+                    if (quantity > 0) {
+                        if (doc.empty) {
+                            products.push(product);
+                            console.log('this userId dont have in carts');
+                            agent.add('this userId dont have in carts');
+                            db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1, userId: userId, products: products });
+                            console.log('adding cart');
+                        } else {
+                            console.log('this userId is in carts already');
+                            // products=doc.data().products;
+                            //products.push(product);
+                            //products.push(product);
+                            doc.forEach(doc => {
+                                products = doc.data().products;
+                                if (products.find(item => item.sku == sku)) {
+                                    products[products.findIndex(item => item.sku == sku)].quantity++;
+                                }
+                                else {
+                                    products.push(product);
+                                }
+                                //
+                                console.log('print docs of carts:' + doc.data().userId);
+                                console.log('doc number of carts:' + doc.ref._path.segments[1]);
+                                admin.firestore()
+                                    .collection('carts')
+                                    .doc(doc.ref._path.segments[1])
+                                    .update({
+                                        userId: doc.data().userId,
+                                        totalPrice: doc.data().totalPrice + product.price,
+                                        totalQuantity: doc.data().totalQuantity + 1,
+                                        products: products//doc.data().products
+                                    })
+                                    .then(() => {
+                                        console.log('cart updated');
+                                    });
+                                // agent.add('docs of carts');
+                                // agent.add(JSON.stringify(doc));
+                                // isCart = 'true';
+                            });
+                        }
                     }
+                    else{
+                        agent.add('quantity = 0');
+                    }
+
                 });
                 // agent.add(isCart);
                 // if (isCart == 'false') {//if dont have cart of this userId
@@ -121,7 +132,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                 //     agent.add('isCarts is true');
                 // }
             }
-
         });
     }
 
@@ -210,40 +220,40 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
                 let contents = [];
                 doc.forEach(doc => {
-                        contents.push({
-                            hero: {
-                                size: "full",
-                                type: "image",
-                                url: doc.data().picture
-                            },
-                            body: {
-                                type: "box",
-                                layout: "vertical",
-                                contents: [
-                                    {
-                                        type: "text",
-                                        text: doc.data().title,
-                                        wrap: true
+                    contents.push({
+                        hero: {
+                            size: "full",
+                            type: "image",
+                            url: doc.data().picture
+                        },
+                        body: {
+                            type: "box",
+                            layout: "vertical",
+                            contents: [
+                                {
+                                    type: "text",
+                                    text: doc.data().title,
+                                    wrap: true
+                                }
+                            ]
+                        },
+                        footer: {
+                            type: "box",
+                            layout: "horizontal",
+                            contents: [
+                                {
+                                    type: "button",
+                                    style: "primary",
+                                    action: {
+                                        type: "message",
+                                        label: "add to cart",
+                                        text: "addcart " + doc.data().sku
                                     }
-                                ]
-                            },
-                            footer: {
-                                type: "box",
-                                layout: "horizontal",
-                                contents: [
-                                    {
-                                        type: "button",
-                                        style: "primary",
-                                        action: {
-                                            type: "message",
-                                            label: "add to cart",
-                                            text: "addcart " + doc.data().sku
-                                        }
-                                    }
-                                ]
-                            },
-                            type: "bubble"
-                        });
+                                }
+                            ]
+                        },
+                        type: "bubble"
+                    });
                     agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
                 });
                 const payloadJson = {
@@ -289,7 +299,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                     },
                                     {
                                         type: "text",
-                                        text: "quantity : "+doc.quantity.toString(),
+                                        text: "quantity : " + doc.quantity.toString(),
                                         wrap: true
                                     }
                                 ]
@@ -304,7 +314,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                         action: {
                                             type: "message",
                                             label: "remove item 1",
-                                            text: "removeitem "+doc.sku
+                                            text: "removeitem " + doc.sku
                                         }
                                     }
                                 ]
