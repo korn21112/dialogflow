@@ -63,7 +63,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     //agent.add(JSON.stringify(doc.ref._path.segments[1]));
                     agent.add(JSON.stringify(doc.data()));
                     quantity = doc.data().quantity
-                    if(quantity<=0){
+                    if (quantity <= 0) {
                         agent.add('quantity = 0 cant not add cart');
                     }
                     product = {
@@ -119,7 +119,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                             });
                         }
                     }
-                    else{
+                    else {
                         agent.add('quantity = 0');
                     }
 
@@ -138,122 +138,50 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     function getShirtHandler(agent) {
         let type = request.body.queryResult.parameters.type;
         agent.add(`Thank you, ${type} (from inline Editor test4)`);
-        const payloadJson = {
-            altText: "this is a carousel template",
-            type: "template",
-            template: {
-                columns: [
-                    {
-                        actions: [
-                            {
-                                label: "choose",
-                                text: "#shirt",
-                                type: "message"
-                            }
-                        ],
-                        thumbnailImageUrl: "https://i.pinimg.com/originals/f3/83/0d/f3830d577e2701aa29347b49acfd5a28.jpg",
-                        text: "...",
-                        title: "Shirt"
-                    },
-                    {
-                        actions: [
-                            {
-                                label: "choose",
-                                text: "#pants",
-                                type: "message"
-                            }
-                        ],
-                        thumbnailImageUrl: "https://www.lundhags.com/globalassets/inriver/resources/1116001-900_computedimageurl.jpg?width=1000&height=1000&quality=80&f.sharpen=20",
-                        title: "Pants",
-                        text: "..."
-                    },
-                    {
-                        title: "shoses",
-                        text: "...",
-                        thumbnailImageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQK9F78tBTQalv0gZc-Rve9GEBPnUMVpwQTwg&usqp=CAU",
-                        actions: [
-                            {
-                                label: "choose",
-                                type: "message",
-                                text: "#shoses"
-                            }
-                        ]
-                    }
-                ],
-                type: "carousel"
-            }
-        };
-
-        let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
-
         db.collection("product").add({ name: "test read fullfill get shirt" });
-        //return admin.firestore().collection('products').doc('BrJqtQVHd5ywewhNUIda').get().then(doc => {
         return admin.firestore().collection('products').where('type', '==', type).get().then(doc => {
-            //agent.add(payload);
-            let col = [];
             if (doc.empty) {
                 agent.add('dont have this type');
             } else {
-                // doc.forEach(doc => {
-                //     col.push({
-                //         actions: [
-                //             {
-                //                 label: "add to cart",
-                //                 text: "addcart " + doc.data().sku,
-                //                 type: "message"
-                //             }
-                //         ],
-                //         thumbnailImageUrl: doc.data().picture,
-                //         text: "...",
-                //         title: doc.data().title
-                //     });
-                //     agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
-                // });
-                // const payloadJson = {
-                //     altText: "this is a carousel template",
-                //     type: "template",
-                //     template: {
-                //         columns: col,
-                //         type: "carousel"
-                //     }
-                // };
-
                 let contents = [];
                 doc.forEach(doc => {
-                    contents.push({
-                        hero: {
-                            size: "full",
-                            type: "image",
-                            url: doc.data().picture
-                        },
-                        body: {
-                            type: "box",
-                            layout: "vertical",
-                            contents: [
-                                {
-                                    type: "text",
-                                    text: doc.data().title,
-                                    wrap: true
-                                }
-                            ]
-                        },
-                        footer: {
-                            type: "box",
-                            layout: "horizontal",
-                            contents: [
-                                {
-                                    type: "button",
-                                    style: "primary",
-                                    action: {
-                                        type: "message",
-                                        label: "add to cart",
-                                        text: "addcart " + doc.data().sku
+                    if (doc.data().quantity > 0) {
+                        contents.push({
+                            hero: {
+                                size: "full",
+                                type: "image",
+                                url: doc.data().picture
+                            },
+                            body: {
+                                type: "box",
+                                layout: "vertical",
+                                contents: [
+                                    {
+                                        type: "text",
+                                        text: doc.data().title,
+                                        wrap: true
                                     }
-                                }
-                            ]
-                        },
-                        type: "bubble"
-                    });
+                                ]
+                            },
+                            footer: {
+                                type: "box",
+                                layout: "horizontal",
+                                contents: [
+                                    {
+                                        type: "button",
+                                        style: "primary",
+                                        action: {
+                                            type: "message",
+                                            label: "add to cart",
+                                            text: "addcart " + doc.data().sku
+                                        }
+                                    }
+                                ]
+                            },
+                            type: "bubble"
+                        });
+                    }
+
                     agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
                 });
                 const payloadJson = {
