@@ -284,26 +284,23 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     function removeItemHandler(agent) {
         console.log('remove item handler');
         let sku = request.body.queryResult.parameters.sku;
-        let isCart = 'false';
         let products = [];
         let product = {};
-        let totalQuantityReduce = 0;
-        let totalPriceReduce = 0;
         agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`remove item test  ${sku} (from inline Editor)`);
 
-        return admin.firestore().collection('products').where('sku', '==', sku).get().then(doc => {
+        return admin.firestore().collection('products').where('sku', '==', sku).get().then(doc => { 
+            //get product from products collection by sku
             console.log('check products from sku');
             agent.add('check products from sku');
-            // agent.add(doc.data().userId);
-            // agent.add(userId);
             if (doc.empty) {
+                //if dont have sku in products collection
                 agent.add('sku error');
-                agent.add(isCart);
             } else {
+                //if have sku in products collection
                 doc.forEach(doc => {
+                    //save data of product to temp for change total price in cart
                     agent.add('sku checked');
-                    //agent.add(JSON.stringify(doc.ref._path.segments[1]));
                     agent.add(JSON.stringify(doc.data()));
                     product = {
                         sku: doc.data().sku,
@@ -312,41 +309,35 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                         price: doc.data().price,
                         picture: doc.data().picture
                     };
-
-                    // products.push(product);
                 });
-
                 agent.add('sku checked');
                 admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+                    //get cart of user for change data
                     console.log('firestore cart get');
                     if (doc.empty) {
-                        products.push(product);
+                        //if user dont have cart
+                        products.push(product); //for what ??
                         console.log('this userId dont have in carts');
                         agent.add('this userId dont have in carts');
-                        // db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1, userId: userId, products: products });
-                        // console.log('adding cart');
                     } else {
+                        //if user have cart
                         console.log('this userId is in carts already');
-                        // products=doc.data().products;
-                        //products.push(product);
-                        //products.push(product);
                         doc.forEach(doc => {
-                            products = doc.data().products; //get product from cart
-                            if (products.find(item => item.sku == sku)) {
-                                //have sku in cart -> remove item
-                                // products[products.findIndex(item => item.sku == sku)].quantity++;
-                                if (products[products.findIndex(item => item.sku == sku)].quantity > 1) {
-                                    products[products.findIndex(item => item.sku == sku)].quantity--;
+                            products = doc.data().products; //get products from user cart
+                            if (products.find(item => item.sku == sku)) { //check products that user want to remove by sku
+                                if (products[products.findIndex(item => item.sku == sku)].quantity > 1) { //check product that user want to remove >1
+                                    //if product that user want to remove >1 -> decrease quantity of product
+                                    products[products.findIndex(item => item.sku == sku)].quantity--; 
                                     agent.add('decrease quantity');
-                                    //decrease quantity
+                                    //decrease quantity of product that user want to remove
                                 }
                                 else {
+                                    //if product that user want to remove <=1 -> remove product from cart
                                     //remove sku in cart == 1
                                     products = products.filter((item) => item.sku != sku)
                                 }
-                                // totalQuantityReduce = 1;
-                                // totalPriceReduce = product.price;
-                                if (products.length >= 1) {
+                                if (products.length >= 1) { //check that user cart have products
+                                    //if user cart have products
                                     admin.firestore()
                                         .collection('carts')
                                         .doc(doc.ref._path.segments[1])
@@ -359,35 +350,20 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                         .then(() => {
                                             console.log('cart updated');
                                         });
+                                    //update user cart(products, total price, total quantity)
                                 } else {
+                                    //if user cart dont have product
                                     admin.firestore().collection('carts').doc(doc.ref._path.segments[1]).delete().then(() => {
                                         agent.add('remove item complete');
                                     });
+                                    //remove user cart from collection
                                 }
-
                             }
                             else {
-                                //dont have sku in cart -> do not thing
-                                // products.push(product);
+                                //dont have sku that user want to remove in cart -> do not thing
                                 console.log('dont have this sku in cart');
                                 agent.add('dont have this sku in cart');
-                                // totalQuantityReduce=0;
-                                // totalPriceReduce=0;
                             }
-                            //
-
-                            // admin.firestore()
-                            //     .collection('carts')
-                            //     .doc(doc.ref._path.segments[1])
-                            //     .update({
-                            //         userId: doc.data().userId,
-                            //         totalPrice: doc.data().totalPrice - totalPriceReduce,
-                            //         totalQuantity: doc.data().totalQuantity - totalQuantityReduce,
-                            //         products: products//doc.data().products
-                            //     })
-                            //     .then(() => {
-                            //         console.log('cart updated');
-                            //     });
                         });
                     }
                 });
