@@ -200,16 +200,18 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function myCartHandler(agent) {
-
-        db.collection("product").add({ name: "test read fullfill get shirt" });
         return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+            //get user cart from collection by userId
             if (doc.empty) {
+                //if dont have cart
                 agent.add('u dont have cart');
             } else {
-                let contents = [];
+                //if have cart
+                let contents = []; //create array for collect products of cart
                 doc.forEach(doc => {
-                    agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
+                    agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity); //test chat
                     doc.data().products.forEach(doc => {
+                        //push data to contents to create card
                         contents.push({
                             hero: {
                                 size: "full",
@@ -268,14 +270,18 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     function cancelCartHandler(agent) {
         return admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+            //get user cart from collection by userId
             if (doc.empty) {
+                //if dont have cart
                 agent.add('u dont have cart');
             } else {
+                //if have cart
                 doc.forEach(doc => {
-                    agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity);
+                    agent.add('total price:' + doc.data().totalPrice + '\ntotal quantity:' + doc.data().totalQuantity); //test chat
                     admin.firestore().collection('carts').doc(doc.ref._path.segments[1]).delete().then(() => {
                         agent.add('cancel cart complete');
                     });
+                    //delete document(user cart)
                 });
             }
         });
