@@ -12,7 +12,7 @@ process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
     const agent = new WebhookClient({ request, response });
     let x = JSON.stringify(request.body);
-    let userId = request.body.originalDetectIntentRequest.payload.data.source.userId;
+    let userId = request.body.originalDetectIntentRequest.payload.data.source.userId; //get userId from payload chat
 
     function getNameHandler(agent) { //test function
         let name = request.body.queryResult.parameters.name || agent.context.get('awaiting_name').parameters.name;
@@ -25,111 +25,84 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     function addCartHandler(agent) {
         console.log('add cart handler');
-        let sku = request.body.queryResult.parameters.sku;
-        let isCart = 'false';
-        let products = [];
-        let product = {};
+        let sku = request.body.queryResult.parameters.sku; //get sku from user chat
+        let productsTemp = [];
+        let productTemp = {};
         let quantity = 0;
-        agent.add(JSON.stringify(request.body.queryResult.parameters));
+        agent.add(JSON.stringify(request.body.queryResult.parameters)); //test chat
         agent.add(`Thank you, ${sku} (from inline Editor)`);
-        // db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId});
-        // agent.add(`add cart (from Linline Editor)`);
-        // agent.add(userId);
-        // admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
-        //     console.log('firestore cart get');
-        //     if (doc.empty) {
-        //         agent.add('this userId dont have in carts');
-        //     } else {
-        //         doc.forEach(doc => {
-        //             console.log('print docs of carts');
-        //             agent.add('docs of carts');
-        //             agent.add(JSON.stringify(doc));
-        //             isCart = 'true';
-        //         });
-        //     }
-        // });
-        //////////////////////////////
-        return admin.firestore().collection('products').where('sku', '==', sku).get().then(doc => {
+        return admin.firestore().collection('products').where('sku', '==', sku).get().then(productDocuments => {
+            //get product from collection by sku
             console.log('products get from sku');
-            agent.add('products get from sku');
-            // agent.add(doc.data().userId);
-            // agent.add(userId);
-            if (doc.empty) {
+            agent.add('products get from sku'); //test chat
+            if (productDocuments.empty) { //check that have product(products have sku from chat)
+                //if dont have product
                 agent.add('sku error');
-                agent.add(isCart);
             } else {
-                doc.forEach(doc => {
-                    agent.add('sku checked');
+                //if have product
+                productDocuments.forEach(productDocument => {
+                    agent.add('sku checked'); //test chat
                     //agent.add(JSON.stringify(doc.ref._path.segments[1]));
-                    agent.add(JSON.stringify(doc.data()));
-                    quantity = doc.data().quantity
-                    if (quantity <= 0) {
+                    agent.add(JSON.stringify(productDocument.data())); //test chat
+                    quantity = productDocument.data().quantity //quantity of product in products collection
+                    if (quantity <= 0) { //check that product quantity > 0
+                        //product out of stock
                         agent.add('quantity = 0 cant not add cart');
                     }
-                    product = {
-                        sku: doc.data().sku,
+                    //save data of product to temp for change total price in cart
+                    productTemp = { //product temp that user choose 
+                        sku: productDocument.data().sku,
                         quantity: 1,
-                        title: doc.data().title,
-                        price: doc.data().price,
-                        picture: doc.data().picture
+                        title: productDocument.data().title,
+                        price: productDocument.data().price,
+                        picture: productDocument.data().picture
                     };
-
-                    // products.push(product);
+                    // products.push(product); //for what ???
                 });
-                admin.firestore().collection('carts').where('userId', '==', userId).get().then(doc => {
+                admin.firestore().collection('carts').where('userId', '==', userId).get().then(cartDocuments => {
+                    //get user cart from collection by userId
                     console.log('firestore cart get');
-                    if (quantity > 0) {
-                        if (doc.empty) {
-                            products.push(product);
+                    if (quantity > 0) { //check that have product in stock
+                        if (cartDocuments.empty) { //check that user have cart?
+                            //user dont have cart
+                            productsTemp.push(productTemp); //add product that user choose to cart(products)
                             console.log('this userId dont have in carts');
                             agent.add('this userId dont have in carts');
-                            db.collection("carts").add({ totalPrice: product.price, totalQuantity: 1, userId: userId, products: products });
+                            db.collection("carts").add({ totalPrice: productTemp.price, totalQuantity: 1, userId: userId, products: productsTemp });
+                            //create new cart
                             console.log('adding cart');
                         } else {
+                            //user has had cart already
                             console.log('this userId is in carts already');
-                            // products=doc.data().products;
-                            //products.push(product);
-                            //products.push(product);
-                            doc.forEach(doc => {
-                                products = doc.data().products;
-                                if (products.find(item => item.sku == sku)) {
-                                    products[products.findIndex(item => item.sku == sku)].quantity++;
+                            cartDocuments.forEach(cartDocument => {
+                                productsTemp = cartDocument.data().products;
+                                if (productsTemp.find(item => item.sku == sku)) { //check that user cart have product
+                                    //if cart have product already 
+                                    productsTemp[productsTemp.findIndex(item => item.sku == sku)].quantity++; //increase product quantity 
                                 }
                                 else {
-                                    products.push(product);
+                                    //if cart dont have product yet
+                                    productsTemp.push(productTemp); //add new product to user cart
                                 }
-                                console.log('print docs of carts:' + doc.data().userId);
-                                console.log('doc number of carts:' + doc.ref._path.segments[1]);
+                                console.log('print docs of carts:' + cartDocument.data().userId);
+                                console.log('doc number of carts:' + cartDocument.ref._path.segments[1]);
                                 admin.firestore()
                                     .collection('carts')
-                                    .doc(doc.ref._path.segments[1])
+                                    .doc(cartDocument.ref._path.segments[1]) //doc.ref._path.segments[1] is document id of user cart
                                     .update({
-                                        userId: doc.data().userId,
-                                        totalPrice: doc.data().totalPrice + product.price,
-                                        totalQuantity: doc.data().totalQuantity + 1,
-                                        products: products//doc.data().products
+                                        userId: cartDocument.data().userId,
+                                        totalPrice: cartDocument.data().totalPrice + productTemp.price,
+                                        totalQuantity: cartDocument.data().totalQuantity + 1,
+                                        products: productsTemp//doc.data().products
                                     })
                                     .then(() => {
                                         console.log('cart updated');
                                     });
-                                // agent.add('docs of carts');
-                                // agent.add(JSON.stringify(doc));
-                                // isCart = 'true';
+                                //update user cart
                             });
                         }
                     }
-                    else {
-                        agent.add('quantity = 0');
-                    }
-
                 });
-                // agent.add(isCart);
-                // if (isCart == 'false') {//if dont have cart of this userId
-                //     db.collection("carts").add({ totalPrice: 1000, totalQuantity: 2 ,userId :userId, products:products});
-                //     agent.add('isCarts is false -> add cart to firestore');
-                // } else {
-                //     agent.add('isCarts is true');
-                // }
             }
         });
     }
