@@ -14,7 +14,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     let x = JSON.stringify(request.body);
     let userId = request.body.originalDetectIntentRequest.payload.data.source.userId;
 
-    function getNameHandler(agent) {
+    function getNameHandler(agent) { //test function
         let name = request.body.queryResult.parameters.name || agent.context.get('awaiting_name').parameters.name;
 
         db.collection("names").add({ name: name });
@@ -98,7 +98,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                 else {
                                     products.push(product);
                                 }
-                                //
                                 console.log('print docs of carts:' + doc.data().userId);
                                 console.log('doc number of carts:' + doc.ref._path.segments[1]);
                                 admin.firestore()
@@ -135,17 +134,22 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         });
     }
 
-    function getShirtHandler(agent) {
-        let type = request.body.queryResult.parameters.type;
-        agent.add(`Thank you, ${type} (from inline Editor test4)`);
+    function getProductByCategoryHandler(agent) { //get products from category
+        let type = request.body.queryResult.parameters.type; // get category from user chat
+        agent.add(`Thank you, ${type} (from inline Editor test4)`); //test chat
         db.collection("product").add({ name: "test read fullfill get shirt" });
         return admin.firestore().collection('products').where('type', '==', type).get().then(doc => {
+            //get products from collection by category(type)
             if (doc.empty) {
+                //if dont have type in db
                 agent.add('dont have this type');
             } else {
+                //if have type
                 let contents = [];
                 doc.forEach(doc => {
-                    if (doc.data().quantity > 0) {
+                    if (doc.data().quantity > 0) { //check product that quantity > 0
+                        //if product have quantity > 0
+                        //push data to contents to create card
                         contents.push({
                             hero: {
                                 size: "full",
@@ -181,8 +185,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                             type: "bubble"
                         });
                     }
-
-                    agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku);
+                    agent.add('type:' + doc.data().type + '\nname:' + doc.data().title + '\nsku:' + doc.data().sku); //test chat
                 });
                 const payloadJson = {
                     altText: "this is a flex message",
@@ -379,7 +382,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     let intentMap = new Map();
     intentMap.set('Get Name', getNameHandler);
-    intentMap.set('Get Shirt', getShirtHandler);
+    intentMap.set('Get Shirt', getProductByCategoryHandler);
     intentMap.set('Add CartTest', addCartHandler);
     intentMap.set('My Cart', myCartHandler);
     intentMap.set('Cancel Cart', cancelCartHandler);
