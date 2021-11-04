@@ -353,6 +353,60 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         });
     }
 
+    function paymentHandler(agent) {
+        let paymentContents = [];
+        paymentContents.push({
+                hero: {
+                    size: "full",
+                    type: "image",
+                    url: "https://i.pinimg.com/originals/fe/7f/4b/fe7f4b418e2778863247a7dcc6aed421.png"
+                },
+                // body: {
+                //     type: "box",
+                //     layout: "vertical",
+                //     contents: [
+                //         {
+                //             type: "text",
+                //             text: product.title,
+                //             wrap: true
+                //         },
+                //         {
+                //             type: "text",
+                //             text: "quantity : " + product.quantity.toString(),
+                //             wrap: true
+                //         }
+                //     ]
+                // },
+                footer: {
+                    type: "box",
+                    layout: "horizontal",
+                    contents: [
+                        {
+                            type: "button",
+                            style: "primary",
+                            action: {
+                                type: "uri",
+                                label: "payment",
+                                uri: "https://liff.line.me/1656343498-3BwbWNpV"
+                            }
+                        }
+                    ]
+                },
+                type: "bubble"
+            });
+        const payloadJson = {
+            altText: "this is a flex message",
+            type: "flex",
+            contents:
+            {
+                type: "carousel",
+                contents: paymentContents
+            }
+        };
+        let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
+        agent.add(payload);
+    }
+
     let intentMap = new Map();
     intentMap.set('Get Name', getNameHandler);
     intentMap.set('Get Shirt', getProductByCategoryHandler);
@@ -360,6 +414,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     intentMap.set('My Cart', myCartHandler);
     intentMap.set('Cancel Cart', cancelCartHandler);
     intentMap.set('Remove Item', removeItemHandler);
+    intentMap.set('Payment', paymentHandler);
     //intentMap.set('Confirm Name Yes', getNameHandler);
     agent.handleRequest(intentMap);
 });
