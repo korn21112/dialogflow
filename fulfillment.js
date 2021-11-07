@@ -118,44 +118,49 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             } else {
                 //if have type
                 let productContents = [];
+                let sku2s = [];
                 productDocuments.forEach(productDocument => {
                     if (productDocument.data().quantity > 0) { //check product that quantity > 0
                         //if product have quantity > 0
-                        //push data to contents to create card
-                        productContents.push({
-                            hero: {
-                                size: "full",
-                                type: "image",
-                                url: productDocument.data().picture
-                            },
-                            body: {
-                                type: "box",
-                                layout: "vertical",
-                                contents: [
-                                    {
-                                        type: "text",
-                                        text: productDocument.data().title,
-                                        wrap: true
-                                    }
-                                ]
-                            },
-                            footer: {
-                                type: "box",
-                                layout: "horizontal",
-                                contents: [
-                                    {
-                                        type: "button",
-                                        style: "primary",
-                                        action: {
-                                            type: "message",
-                                            label: "add to cart",
-                                            text: "addcart " + productDocument.data().sku
+                        if (!(sku2s.find(sku2 => sku2 == productDocument.data().sku2))) {
+                            sku2s.push(productDocument.data().sku2)
+                            //push data to contents to create card
+                            productContents.push({
+                                hero: {
+                                    size: "full",
+                                    type: "image",
+                                    url: productDocument.data().picture
+                                },
+                                body: {
+                                    type: "box",
+                                    layout: "vertical",
+                                    contents: [
+                                        {
+                                            type: "text",
+                                            text: productDocument.data().title,
+                                            wrap: true
                                         }
-                                    }
-                                ]
-                            },
-                            type: "bubble"
-                        });
+                                    ]
+                                },
+                                footer: {
+                                    type: "box",
+                                    layout: "horizontal",
+                                    contents: [
+                                        {
+                                            type: "button",
+                                            style: "primary",
+                                            action: {
+                                                type: "message",
+                                                label: "choose size",
+                                                text: "choose size " + productDocument.data().sku2
+                                            }
+                                        }
+                                    ]
+                                },
+                                type: "bubble"
+                            });
+                        }
+
                     }
                     agent.add('type:' + productDocument.data().type + '\nname:' + productDocument.data().title + '\nsku:' + productDocument.data().sku); //test chat
                 });
@@ -410,7 +415,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         console.log('add cart handler');
         let sku2 = request.body.queryResult.parameters.sku2; //get sku from user chat
         agent.add(`choose size ${sku2} , (from inline Editor)`);
-        return admin.firestore().collection('products').orderBy("sku").startAt(sku2+"0").endAt(sku2+"9").get().then(productDocuments => {
+        return admin.firestore().collection('products').orderBy("sku").startAt(sku2 + "0").endAt(sku2 + "9").get().then(productDocuments => {
             //get products from collection by category(type)
             if (productDocuments.empty) {
                 //if dont have type in db
@@ -426,10 +431,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                             {
                                 type: "button",
                                 style: "primary",
-                                margin:"sm",
+                                margin: "sm",
                                 action: {
                                     type: "message",
-                                    label: "size"+productDocument.data().size,//productDocument.data().sku,
+                                    label: "size" + productDocument.data().size,//productDocument.data().sku,
                                     text: "addcart " + productDocument.data().sku
                                 }
                             }
@@ -443,18 +448,18 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                                 cornerRadius: "md",
                                 layout: "vertical",
                                 paddingAll: "lg",
-                                margin:"sm",
+                                margin: "sm",
                                 contents: [
                                     {
-                                      type: "text",
-                                      text: "size"+productDocument.data().size+"out of stock",//productDocument.data().sku,
-                                      weight: "regular",
-                                      wrap: false,
-                                      color: "#FFFFFF",
-                                      align: "center"
+                                        type: "text",
+                                        text: "size" + productDocument.data().size + " out of stock",//productDocument.data().sku,
+                                        weight: "regular",
+                                        wrap: false,
+                                        color: "#FFFFFF",
+                                        align: "center"
                                     }
                                 ]
-                                
+
                             }
 
                         )
