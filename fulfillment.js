@@ -110,7 +110,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     function getProductByCategoryHandler(agent) { //get products from category
         let type = request.body.queryResult.parameters.type; // get category from user chat
         agent.add(`Thank you, ${type} (from inline Editor test4)`); //test chat
-        db.collection("product").add({ name: "test read fullfill get shirt" });
         return admin.firestore().collection('products').where('type', '==', type).get().then(productDocuments => {
             //get products from collection by category(type)
             if (productDocuments.empty) {
@@ -271,7 +270,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         agent.add(JSON.stringify(request.body.queryResult.parameters));
         agent.add(`remove item test  ${sku} (from inline Editor)`);
 
-        return admin.firestore().collection('products').where('sku', '==', sku).get().then(productDocuments => { 
+        return admin.firestore().collection('products').where('sku', '==', sku).get().then(productDocuments => {
             //get product from products collection by sku
             console.log('check products from sku');
             agent.add('check products from sku');
@@ -309,7 +308,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                             if (productsTemp.find(item => item.sku == sku)) { //check products that user want to remove by sku
                                 if (productsTemp[productsTemp.findIndex(item => item.sku == sku)].quantity > 1) { //check product that user want to remove >1
                                     //if product that user want to remove >1 -> decrease quantity of product
-                                    productsTemp[productsTemp.findIndex(item => item.sku == sku)].quantity--; 
+                                    productsTemp[productsTemp.findIndex(item => item.sku == sku)].quantity--;
                                     agent.add('decrease quantity');
                                     //decrease quantity of product that user want to remove
                                 }
@@ -356,44 +355,44 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     function paymentHandler(agent) {
         let paymentContents = [];
         paymentContents.push({
-                hero: {
-                    size: "full",
-                    type: "image",
-                    url: "https://i.pinimg.com/originals/fe/7f/4b/fe7f4b418e2778863247a7dcc6aed421.png"
-                },
-                // body: {
-                //     type: "box",
-                //     layout: "vertical",
-                //     contents: [
-                //         {
-                //             type: "text",
-                //             text: product.title,
-                //             wrap: true
-                //         },
-                //         {
-                //             type: "text",
-                //             text: "quantity : " + product.quantity.toString(),
-                //             wrap: true
-                //         }
-                //     ]
-                // },
-                footer: {
-                    type: "box",
-                    layout: "horizontal",
-                    contents: [
-                        {
-                            type: "button",
-                            style: "primary",
-                            action: {
-                                type: "uri",
-                                label: "payment",
-                                uri: "https://liff.line.me/1656343498-3BwbWNpV"
-                            }
+            hero: {
+                size: "full",
+                type: "image",
+                url: "https://i.pinimg.com/originals/fe/7f/4b/fe7f4b418e2778863247a7dcc6aed421.png"
+            },
+            // body: {
+            //     type: "box",
+            //     layout: "vertical",
+            //     contents: [
+            //         {
+            //             type: "text",
+            //             text: product.title,
+            //             wrap: true
+            //         },
+            //         {
+            //             type: "text",
+            //             text: "quantity : " + product.quantity.toString(),
+            //             wrap: true
+            //         }
+            //     ]
+            // },
+            footer: {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    {
+                        type: "button",
+                        style: "primary",
+                        action: {
+                            type: "uri",
+                            label: "payment",
+                            uri: "https://liff.line.me/1656343498-3BwbWNpV"
                         }
-                    ]
-                },
-                type: "bubble"
-            });
+                    }
+                ]
+            },
+            type: "bubble"
+        });
         const payloadJson = {
             altText: "this is a flex message",
             type: "flex",
@@ -407,6 +406,111 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         agent.add(payload);
     }
 
+    function chooseSizeHandler(agent) {
+        console.log('add cart handler');
+        let sku2 = request.body.queryResult.parameters.sku2; //get sku from user chat
+        agent.add(`choose size ${sku2} , (from inline Editor)`);
+        return admin.firestore().collection('products').orderBy("sku").startAt(sku2+"0").endAt(sku2+"9").get().then(productDocuments => {
+            //get products from collection by category(type)
+            if (productDocuments.empty) {
+                //if dont have type in db
+                agent.add('dont have this type');
+            } else {
+                //if have type
+                let productContents = [];
+                let footerContents = [];
+                // productDocuments.sort(compare)
+                productDocuments.forEach(productDocument => {
+                    if (productDocument.data().quantity > 0) { //check product that quantity > 0
+                        footerContents.push(
+                            {
+                                type: "button",
+                                style: "primary",
+                                margin:"sm",
+                                action: {
+                                    type: "message",
+                                    label: "size"+productDocument.data().size,//productDocument.data().sku,
+                                    text: "addcart " + productDocument.data().sku
+                                }
+                            }
+
+                        )
+                    } else {
+                        footerContents.push(
+                            {
+                                type: "box",
+                                backgroundColor: "#888888",
+                                cornerRadius: "md",
+                                layout: "vertical",
+                                paddingAll: "lg",
+                                margin:"sm",
+                                contents: [
+                                    {
+                                      type: "text",
+                                      text: "size"+productDocument.data().size+"out of stock",//productDocument.data().sku,
+                                      weight: "regular",
+                                      wrap: false,
+                                      color: "#FFFFFF",
+                                      align: "center"
+                                    }
+                                ]
+                                
+                            }
+
+                        )
+                    }
+                });
+
+                productContents.push({
+                    // hero: {
+                    //     size: "full",
+                    //     type: "image",
+                    //     url: productDocument.data().picture
+                    // },
+                    // body: {
+                    //     type: "box",
+                    //     layout: "vertical",
+                    //     contents: [
+                    //         {
+                    //             type: "text",
+                    //             text: productDocument.data().title,
+                    //             wrap: true
+                    //         }
+                    //     ]
+                    // },
+                    footer: {
+                        type: "box",
+                        layout: "vertical",
+                        contents: footerContents
+                    },
+                    type: "bubble"
+                });
+
+                const payloadJson = {
+                    altText: "this is a flex message",
+                    type: "flex",
+                    contents:
+                    {
+                        type: "carousel",
+                        contents: productContents
+                    }
+                };
+                let payload = new Payload(`LINE`, payloadJson, { sendAsMessage: true });
+                agent.add(payload);
+            }
+        });
+    }
+
+    // function compare( a, b ) {
+    //     if ( a.data().sku < b.data().sku ){
+    //       return -1;
+    //     }
+    //     if ( a.data().sku > b.data().sku ){
+    //       return 1;
+    //     }
+    //     return 0;
+    //   }
+
     let intentMap = new Map();
     intentMap.set('Get Name', getNameHandler);
     intentMap.set('Get Shirt', getProductByCategoryHandler);
@@ -415,6 +519,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     intentMap.set('Cancel Cart', cancelCartHandler);
     intentMap.set('Remove Item', removeItemHandler);
     intentMap.set('Payment', paymentHandler);
+    intentMap.set('Choose Size', chooseSizeHandler);
     //intentMap.set('Confirm Name Yes', getNameHandler);
     agent.handleRequest(intentMap);
 });
